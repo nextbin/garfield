@@ -3,12 +3,14 @@ package com.latios.garfield.task;
 import com.google.gson.Gson;
 import com.latios.garfield.GarfieldConfig;
 import com.latios.garfield.GarfieldConsts;
+import com.latios.garfield.cli.WatchingCli;
 import com.latios.garfield.core.email.EmailSender;
+import com.latios.garfield.core.http.Http;
 import com.latios.garfield.core.util.Md5Util;
 import com.latios.garfield.entity.Email;
 import com.latios.garfield.entity.WatchingConfig;
-import com.latios.garfield.core.http.Http;
-import com.latios.garfield.cli.WatchingCli;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -34,10 +36,10 @@ public class WatchingTask implements Runnable {
     @Override
     public void run() {
         try {
-            LOG.info("monitor list file: " + GarfieldConsts.FILE_NAME_PAGES_YML);
-            LOG.info("link file: " + GarfieldConsts.FILE_NAME_LINK_LOG);
-            List<String> oldLinks = getOldLinks();
-            InputStream input = new FileInputStream(GarfieldConsts.FILE_NAME_PAGES_YML);
+            LOG.info("monitor list file: " + GarfieldConsts.FILE_NAME_WATCHING_PAGES_YML);
+            LOG.info("link file: " + GarfieldConsts.FILE_NAME_HISTORY_URL_LOG);
+            List<String> oldLinks = getHistoryLinks();
+            InputStream input = new FileInputStream(GarfieldConsts.FILE_NAME_WATCHING_PAGES_YML);
             Object object = new Yaml().load(input);
             input.close();
             LOG.info("configs: " + object);
@@ -60,16 +62,10 @@ public class WatchingTask implements Runnable {
                 EmailSender emailSender = new EmailSender();
                 emailSender.send(email.getTitle(), email.getContent(), email.getSendTo());
                 LOG.info("email send success.");
-                // update config
-                String updateStr = new Yaml().dump(configs);
-                OutputStream output = new FileOutputStream(GarfieldConsts.FILE_NAME_PAGES_YML);
-                output.write(updateStr.getBytes());
-                output.flush();
-                output.close();
-            }
-            // update link
-            if (!newLinks.isEmpty()) {
-                OutputStream output = new FileOutputStream(GarfieldConsts.FILE_NAME_LINK_LOG, true);
+                // append md5
+                appendMd5(newPage.keySet());
+                // update link
+                OutputStream output = new FileOutputStream(GarfieldConsts.FILE_NAME_HISTORY_URL_LOG, true);
                 for (String newLink : newLinks) {
                     output.write((newLink + "\n").getBytes());
                 }
@@ -79,6 +75,28 @@ public class WatchingTask implements Runnable {
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
         }
+    }
+
+    private void appendMd5(Collection<WatchingConfig> watchingConfigs) throws IOException {
+        List<String> md5List = new LinkedList<>();
+        for (WatchingConfig config : watchingConfigs) {
+            String url = config.getUrl();
+            String selector = config.getSelector();
+            Http http = new Http();
+            try {
+                String html = http.get(url);
+                Document doc = Jsoup.parse(html);
+                Elements elements = doc.select(selector);
+                String md5 = Md5Util.md5(elements.html());
+                md5List.add(md5);
+            } catch (Exception e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+        OutputStream outputStream = new FileOutputStream(GarfieldConsts.FILE_NAME_HISTORY_MD5_LOG, true);
+        outputStream.write((StringUtils.join(md5List, "\n") + "\n").getBytes("UTF-8"));
+        outputStream.flush();
+        outputStream.close();
     }
 
     private static Email getEmail(Map<WatchingConfig, List<String>> newPage) {
@@ -110,23 +128,20 @@ public class WatchingTask implements Runnable {
         return email;
     }
 
-    private static List<String> getOldLinks() throws IOException {
-        List<String> ret = new LinkedList<>();
-        File file = new File(GarfieldConsts.FILE_NAME_LINK_LOG);
+    private static List<String> getHistoryLinks() throws IOException {
+        File file = new File(GarfieldConsts.FILE_NAME_HISTORY_URL_LOG);
         if (!file.exists()) {
-            String res = file.createNewFile() ? "success" : "fail";
-            LOG.info(String.format("create file %s %s", GarfieldConsts.FILE_NAME_LINK_LOG, res));
+            if (file.createNewFile()) {
+                LOG.info(String.format("create %s success", GarfieldConsts.FILE_NAME_HISTORY_URL_LOG));
+            } else {
+                LOG.error(String.format("create %s fail, exit now!", GarfieldConsts.FILE_NAME_HISTORY_URL_LOG));
+                System.exit(1);
+            }
         }
-        BufferedReader input = new BufferedReader(new FileReader(GarfieldConsts.FILE_NAME_LINK_LOG));
-        String str;
-        while ((str = input.readLine()) != null) {
-            ret.add(str);
-        }
-        input.close();
-        return ret;
+        return FileUtils.readLines(file, "UTF-8");
     }
 
-    public static List<String> getNewLinks(WatchingConfig config, List<String> oldLinks) throws Exception {
+    private static List<String> getNewLinks(WatchingConfig config, List<String> oldLinks) throws Exception {
         List<String> newLinks = new LinkedList<>();
         String url = config.getUrl();
         String selector = config.getSelector();
@@ -135,8 +150,7 @@ public class WatchingTask implements Runnable {
         Document doc = Jsoup.parse(html);
         Elements elements = doc.select(selector);
         String currentMd5 = Md5Util.md5(elements.html());
-        boolean isNew = !config.getSupposeMd5().equals(currentMd5);
-        config.setSupposeMd5(currentMd5);
+        boolean isNew = existMd5(currentMd5);
         if (isNew) {
             for (Element element : elements) {
                 String linkHtml = element.outerHtml();
@@ -146,6 +160,26 @@ public class WatchingTask implements Runnable {
             }
         }
         return newLinks;
+    }
+
+    private static boolean existMd5(String md5) throws IOException {
+        File file = new File(GarfieldConsts.FILE_NAME_HISTORY_MD5_LOG);
+        if (!file.exists()) {
+            if (file.createNewFile()) {
+                LOG.info(String.format("create %s success", GarfieldConsts.FILE_NAME_HISTORY_MD5_LOG));
+            } else {
+                LOG.error(String.format("create %s fail, exit now!", GarfieldConsts.FILE_NAME_HISTORY_MD5_LOG));
+                System.exit(1);
+            }
+        }
+        BufferedReader reader = new BufferedReader(new FileReader(file));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.equals(md5)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

@@ -8,7 +8,6 @@ public class WatchingConfig {
     private String name;
     private String url;
     private String selector;
-    private String supposeMd5;
 
     public String getName() {
         return name;
@@ -34,21 +33,12 @@ public class WatchingConfig {
         this.selector = selector;
     }
 
-    public String getSupposeMd5() {
-        return supposeMd5;
-    }
-
-    public void setSupposeMd5(String supposeMd5) {
-        this.supposeMd5 = supposeMd5;
-    }
-
     @Override
     public String toString() {
         return "WatchingConfig{" +
                 "name='" + name + '\'' +
                 ", url='" + url + '\'' +
                 ", selector='" + selector + '\'' +
-                ", supposeMd5='" + supposeMd5 + '\'' +
                 '}';
     }
 }
