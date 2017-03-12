@@ -1,0 +1,5 @@
+email.server.user=username@163.com
+email.server.pass=password
+email.server.host=smtp.163.com
+email.server.port=465
+email.send.to=sendto@163.com
