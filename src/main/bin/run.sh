@@ -11,10 +11,10 @@ if [ $# -eq 0 ]; then
 fi
 
 if [ "$1" = 'WatchingCli' ]; then
-    class='WatchingCli'
+    main_class='com.latios.garfield.cli.WatchingCli'
 else
-    class=$1
+    main_class=$1
 fi
 
-echo "main class: $class"
-java -cp ${jar} ${class} $@
+echo "main class: $main_class"
+java -cp ${jar} ${main_class} $@
