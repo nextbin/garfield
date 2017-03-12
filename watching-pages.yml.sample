@@ -1,0 +1,33 @@
+---
+-
+  name: "神盾局特工 第4季"
+  selector: "#entry a"
+  url: "http://cn163.net/archives/23794/"
+-
+  name: "黑名单 第4季"
+  selector: "#entry a"
+  url: "http://cn163.net/archives/23813/"
+-
+  name: "闪电侠 第3季"
+  selector: "#entry a"
+  url: "http://cn163.net/archives/23790/"
+-
+  name: "指定幸存者 第1季"
+  selector: "#entry a"
+  url: "http://cn163.net/archives/24043/"
+-
+  name: "天蝎(Scorpion) 第3季"
+  selector: "#entry a"
+  url: "http://cn163.net/archives/24096/"
+-
+  name: "黑洞频率(Frequency) 第1季"
+  selector: "#entry a"
+  url: "http://cn163.net/archives/24088/"
+-
+  name: "跨时空追捕(Timeless) 第1季"
+  selector: "#entry a"
+  url: "http://cn163.net/archives/24087/"
+-
+  name: "西部世界(Westworld) 第1季"
+  selector: "#showinfo table a"
+  url: "http://www.piaohua.com/html/lianxuju/2016/1007/31363.html"
