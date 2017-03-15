@@ -18,6 +18,7 @@ public class HttpConfig {
     }
 
     private long retryInterval = 1000 * 2;
+    private long timeout = 1000 * 60;
     private Map<String, String> header = null;
 
     public long getRetryInterval() {
@@ -26,6 +27,14 @@ public class HttpConfig {
 
     public void setRetryInterval(long retryInterval) {
         this.retryInterval = retryInterval;
+    }
+
+    public long getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(long timeout) {
+        this.timeout = timeout;
     }
 
     public Map<String, String> getHeader() {

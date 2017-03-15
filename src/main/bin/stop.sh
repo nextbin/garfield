@@ -4,6 +4,3 @@ do
   echo "kill pid "${i}
   kill ${i}
 done
-
-echo 'after killing:'
-jps -lm

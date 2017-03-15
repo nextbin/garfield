@@ -2,9 +2,9 @@ package com.latios.garfield.core.http;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.ParseException;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -24,15 +24,20 @@ public class Http {
 
     public String get(String url) throws Exception {
         CloseableHttpClient client = HttpClients.createDefault();
-        HttpUriRequest request = new HttpGet(url);
+        HttpGet httpGet = new HttpGet(url);
         for (Map.Entry<String, String> header : config.getHeader().entrySet()) {
-            request.setHeader(header.getKey(), header.getValue());
+            httpGet.setHeader(header.getKey(), header.getValue());
         }
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout((int) config.getTimeout())
+                .setConnectionRequestTimeout((int) config.getTimeout())
+                .setSocketTimeout((int) config.getTimeout()).build();
+        httpGet.setConfig(requestConfig);
         Exception e = null;
         int retry = 3;
         while (retry-- > 0) {
             try {
-                CloseableHttpResponse response = client.execute(request);
+                CloseableHttpResponse response = client.execute(httpGet);
                 HttpEntity entity = response.getEntity();
                 return EntityUtils.toString(entity);
             } catch (ParseException | IOException e1) {

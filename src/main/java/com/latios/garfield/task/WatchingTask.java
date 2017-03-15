@@ -1,6 +1,7 @@
 package com.latios.garfield.task;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.latios.garfield.GarfieldConfig;
 import com.latios.garfield.GarfieldConsts;
 import com.latios.garfield.cli.WatchingCli;
@@ -43,7 +44,8 @@ public class WatchingTask implements Runnable {
             Object object = new Yaml().load(input);
             input.close();
             LOG.info("configs: " + object);
-            List<WatchingConfig> configs = (List<WatchingConfig>) object;
+            List<WatchingConfig> configs = gson.fromJson(gson.toJson(object), new TypeToken<List<WatchingConfig>>() {
+            }.getType());
             Map<WatchingConfig, List<String>> newPage = new HashMap<>();
             List<String> newLinks = new LinkedList<>();
             for (WatchingConfig config : configs) {
@@ -150,7 +152,7 @@ public class WatchingTask implements Runnable {
         Document doc = Jsoup.parse(html);
         Elements elements = doc.select(selector);
         String currentMd5 = Md5Util.md5(elements.html());
-        boolean isNew = existMd5(currentMd5);
+        boolean isNew = !existMd5(currentMd5);
         if (isNew) {
             for (Element element : elements) {
                 String linkHtml = element.outerHtml();
